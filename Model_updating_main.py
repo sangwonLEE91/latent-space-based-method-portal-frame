@@ -2,7 +2,7 @@ import numpy as np
 import torch
 from simulator import multi_sim, taper_maker, load_elcentro
 from TMCMC_func import Lfun_vae, train_vae, initialize_vae, MHalgorithm_vae, cal_wj_Sj, tempering_parameter
-from TMCMC_func import tempering_parameter, samples_add, prior_p, prior_r, LHS, scatter_plot
+from TMCMC_func import tempering_parameter, prior_p,  LHS, scatter_plot
 import pickle
 import matplotlib.pyplot as plt
 from MVAE_residual import VAE
