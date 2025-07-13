@@ -28,7 +28,7 @@ kmin = 10 # cutoff frequency step for the frequency response function
 
 
 
-trained_model = False  # True if you want to use the trained model, False if you want to train a new one
+trained_model = True  # True if you want to use the trained model, False if you want to train a new one
 
 root = f'result/test{test}/'
 os.makedirs(root, exist_ok=True)
@@ -79,11 +79,12 @@ sim = lambda obs: multi_sim(obs, taper=taper, time_series=time_series, excitatio
 samples['pop'][j - 1] = prior_rnd(Ns)  # initial MCMC samples
 
 ### Generate dataset
-labels = prior_rnd(N0)
+if trained_model != True:  # If you want to train a new model
+    labels = prior_rnd(N0)
+    Y0 = sim(labels)
+    Dataset = [Y0, labels]
 label_val = prior_rnd(Nv0)
-Y0 = sim(labels)
 Y0_val = sim(label_val)
-Dataset = [Y0, labels]
 Dataset_val = [Y0_val, label_val]
 
 scatter_plot(samples['pop'][j - 1], labels, labels, true_theta)
@@ -102,7 +103,7 @@ else: # If you want to use the trained model
 net.eval()
 
 #### calculate p(z|D) and p(z) with trained VAE and dataset
-z_D, z = initialize_vae(y_obs, net.enc, device, Dataset)
+z_D, z = initialize_vae(y_obs, net.enc, device, Dataset_val)
 
 #### Sequential importance sampling
 while p_j[j - 1] < 1:
