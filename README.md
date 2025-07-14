@@ -1,8 +1,8 @@
 # latent-space-based-method-portal-frame
 
 ## Project Overview
-This repository implements a Bayesian model-updating pipeline for a 2-D portal-frame structure by directly applying the latent-space likelihood estimation approach of Lee et al. (2024).  
-OpenSeesPy generates frequency-response data under El Centro ground motion, a Variational Autoencoder (VAE) evaluates the likelihood of candidate parameters in a compact latent space as described in the paper, and Transitional Markov Chain Monte Carlo (TMCMC) produces posterior samples of the structural parameters.
+This repository implements a Bayesian model-updating pipeline for a 2-D portal-frame structure, adopting the geometry from Yaoyama et al. (2024) and directly applying the latent-space likelihood estimation approach of Lee et al. (2024).  
+OpenSeesPy generates frequency-response data under El Centro ground motion, a Variational Autoencoder (VAE) evaluates the likelihood of candidate parameters in a compact latent space as described by Lee et al., and Transitional Markov Chain Monte Carlo (TMCMC) produces posterior samples of the structural parameters.
 
 ## Key Components
 | File / Folder            | Purpose                                                                                        |
@@ -37,5 +37,15 @@ If this code is helpful for your research, please cite:
   number  = {4},
   pages   = {04024072},
   year    = {2024},
-  doi     = {10.1061/AJRUA6.RUENG-1305}
-}
+  doi     = {10.1061/AJRUA6.RUENG-1305}}
+
+@article{Yaoyama24,
+title = {Probabilistic model updating of steel frame structures using strain and acceleration measurements: A multitask learning framework},
+author = {Taro Yaoyama and Tatsuya Itoi and Jun Iyama},
+journal = {Structural Safety},
+volume = {108},
+pages = {102442},
+year = {2024},
+issn = {0167-4730},
+doi = {https://doi.org/10.1016/j.strusafe.2024.102442}}
+
