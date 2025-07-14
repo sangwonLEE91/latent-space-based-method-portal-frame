@@ -326,64 +326,6 @@ class Decoder(nn.Module):
                 nn.init.zeros_(m.bias)
 
 
-class MVAE(nn.Module):
-    def __init__(self, z_dim, ch, size, nlabel, device):
-        super(MVAE, self).__init__()
-        self.enc_x = Encoder(z_dim, ch, size, device)
-        self.enc_w = Encoder_w(z_dim, nlabel, device)
-        self.dec = Decoder(z_dim, ch, size)
-
-    def forward(self, x, w):
-        z1, mu1, var1 = self.enc_x(x)  # Encode
-        z2, mu2, var2 = self.enc_w(w)  # Encode
-        x_mu1, x_var1 = self.dec(z1)  # Decode
-        x_mu2, x_var2 = self.dec(z2)  # Decode
-        return x_mu1, x_var1, x_mu2, x_var2
-
-    def loss(self, x, w):
-        z1, mu1, var1 = self.enc_x(x)
-        z2, mu2, var2 = self.enc_w(w)
-        x_mu1, x_var1 = self.dec(z1)
-        x_mu2, x_var2 = self.dec(z2)
-
-        KL1 = gauss_unitgauss_kl(mu1, var1)
-        KL2 = gauss_unitgauss_kl(mu2, var2)
-        KL_x1x2 = gauss_gauss_kl(mu1, var1, mu2, var2)
-        KL_x2x1 = gauss_gauss_kl(mu2, var2, mu1, var1)
-        rec_loss_xx = rec_loss_norm4D(x, x_mu1, x_var1) * 4
-        rec_loss_wx = rec_loss_norm4D(x, x_mu2, x_var2) * 4
-
-        lower_bound = [-KL1,-KL2, -KL_x1x2, -KL_x2x1, -rec_loss_xx, -rec_loss_wx]
-        return -sum(lower_bound), KL1, KL_x1x2 + KL_x2x1, rec_loss_xx
-
-    def waveshow(self, true, rec_x_x, rec_w_x, i_check=[0, 1, 2, 3]):
-        n_fig = len(i_check)
-        fig, ax = plt.subplots(n_fig, 1, figsize=(8, 8),
-                               sharex="col", sharey="col")
-        fig.subplots_adjust(left=0.1, bottom=0.07, top=0.9, right=0.97, wspace=0.25, hspace=0.2)
-        first = True
-        for i in i_check:
-            if true.shape[2] == 2:
-                ax[i].plot(np.sqrt(true[i, 0, 0, :] ** 2 + true[i, 1, 0, :] ** 2), label='True', color='r')
-                ax[i].plot(np.sqrt(rec_w_x[i, 0, 0, :] ** 2 + rec_w_x[i, 1, 0, :] ** 2), label='rec_w_x')
-                ax[i].plot(np.sqrt(rec_x_x[i, 0, 0, :] ** 2 + rec_x_x[i, 1, 0, :] ** 2), label='rec_x_x')
-            elif true.shape[2] == 1:
-                ax[i].plot(true[i, 0, 0, :], label='True', color='r')
-                ax[i].plot(rec_w_x[i, 0, 0, :], label='rec_w_x')
-                ax[i].plot(rec_x_x[i, 0, 0, :], label='rec_x_x')
-
-            ax[i].set_ylabel('amp.')
-            if first:
-                ax[i].legend(loc='lower center', bbox_to_anchor=(0.5, 1.05), fancybox=True, shadow=False, ncol=2)
-            first = False
-        # ax[0][0].set_ylim(bottom=0)
-        # ax[0][1].set_ylim(bottom=0)
-        # ax[i][0].set_xticks([0, 1])
-        # ax[i][1].set_xticks([0, 1])
-        ax[len(i_check) - 1].set_xlabel(' steps')
-        plt.show()
-
-
 
 class VAE(nn.Module):
     def __init__(self, z_dim, ch, size, device):

@@ -1,5 +1,4 @@
 import numpy as np
-from scipy.stats import multivariate_normal
 import torch
 from torch.utils.data import Dataset
 import pandas as pd
@@ -7,7 +6,11 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy.stats import qmc
 import copy
-
+import warnings
+warnings.filterwarnings(
+    "ignore",
+    message="The figure layout has changed to tight"
+)
 def prior_r(Nsam, prior):
     # generate uncorrelat
     npar = len(prior)
@@ -40,18 +43,14 @@ def prior_p(theta, prior):
             p *= prior[j].pdf(theta[j])
     return p
 
-def scatter_plot(samples, dataset, added, true_theta):
+def scatter_plot(samples,  true_theta, root , j):
     columns = [r'$\theta_1$', r'$\theta_2$', r'$\theta_3$']
     # dataset = dataset_loaded[i]
     df = pd.DataFrame(samples, columns=columns)
-    if len(dataset) != 0:
-        df2 = pd.DataFrame(dataset, columns=columns)
-    if len(added) != 0:
-        df3 = pd.DataFrame(added, columns=columns)
     # 원하는 축 범위를 정의합니다.
     axis_ranges = {r'$\theta_1$': [0, 4], r'$\theta_2$': [0, 4], r'$\theta_3$': [0, 1]}
     N_bins = 20
-    g = sns.pairplot(df, plot_kws={'color': 'gray', 's': 1, 'alpha': 0.5},
+    g = sns.pairplot(df, plot_kws={'color': 'gray', 's': 4, 'alpha': 0.5},
                      diag_kws={'color': 'gray', 'edgecolor': 'black', 'bins': N_bins})
     # 첫 번째 히스토그램 서브플롯의 y축 틱 라벨 제거 (기존 코드 유지)
     g.axes[0, 0].set_yticks([])
@@ -62,22 +61,6 @@ def scatter_plot(samples, dataset, added, true_theta):
         ax.yaxis.label.set_size(12)
     variables = df.columns
     axes = g.axes
-
-    # 각 축에 대해 df2 데이터를 추가로 플롯
-    for ii, var1 in enumerate(variables):
-        for jj, var2 in enumerate(variables):
-            ax = g.axes[ii, jj]
-            if ii != jj:
-                # df2 데이터 추가
-                if len(dataset) != 0:
-                    ax.scatter(df2[var2], df2[var1], color='C0', s=4, label='Data 2', alpha=0.8)
-                if len(added) != 0:
-                    ax.scatter(df3[var2], df3[var1], color='C1', s=9, label='Data 2', alpha=0.8)
-                pass
-            else:
-                # 히스토그램 df2 추가
-                # ax.hist(df2[var1], bins=N_bins, color='C1', edgecolor='black', alpha=0.8)
-                pass
 
     # 각 서브플롯에 대해 축 범위를 설정합니다.
     for ii, var1 in enumerate(variables):
@@ -94,6 +77,7 @@ def scatter_plot(samples, dataset, added, true_theta):
                 ax.axvline(true_theta[jj], 0, 1, linewidth=1, linestyle=':', color='r')
                 ax.plot(true_theta[jj], true_theta[ii], linestyle='', marker='o', markersize=5, color='r',
                         label='Target')
+    plt.savefig(f'{root}/scatter_hitogram_{j}.png', dpi=300, bbox_inches='tight')
     plt.show()
 
 
@@ -203,7 +187,7 @@ def measure_of_fit(f,f_hat, ld=[1, 1, 1, 1, 1]):
 
 
 
-def MHalgorithm_vae(w_j, Ns, samples, logL_j1, S_j, VAE_enc, sim, device, z_D, z, p_jj, prior_pdf, n_burn=1):
+def MHalgorithm_vae(w_j, Ns, samples, logL_j1, S_j, VAE_enc, sim, device, z_D, z, p_jj, prior_pdf, n_burn=0):
     w_csum = np.cumsum(w_j)
     Nseed = np.zeros(Ns, dtype=int)
     Nseed = np.searchsorted(w_csum, np.random.rand(Ns), side='right')
@@ -212,7 +196,7 @@ def MHalgorithm_vae(w_j, Ns, samples, logL_j1, S_j, VAE_enc, sim, device, z_D, z
     logL_seed = logL_j1[Nseed]
     logP_seed = np.log(prior_pdf(samples_seed))  # prior
 
-    for _ in range(n_burn):
+    for _ in range(n_burn+1):
         noise = np.random.multivariate_normal(mean=np.zeros(S_j.shape[0]), cov=S_j, size=Ns)
         samples_cand = samples_seed + noise
         # --- prior の対数を計算する部分はそのまま ---

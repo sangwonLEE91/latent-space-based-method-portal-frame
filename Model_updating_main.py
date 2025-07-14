@@ -1,31 +1,25 @@
 import numpy as np
 import torch
-from simulator import multi_sim, taper_maker, load_elcentro
-from TMCMC_func import Lfun_vae, train_vae, initialize_vae, MHalgorithm_vae, cal_wj_Sj, tempering_parameter
-from TMCMC_func import tempering_parameter, prior_p,  LHS, scatter_plot
+from simulator import *
+from utils import *
 import pickle
-import matplotlib.pyplot as plt
-from MVAE_residual import VAE
-import timeit
-from matplotlib.colors import LogNorm, Normalize
+from VAE_residual import VAE
 import os
-from functools import partial
 from scipy.stats import uniform
 
 test = 1
 
-N0 = 80  # Number of training samples
-Nv0 = 20  # Number of validation samples
+N0 = 10000  # Number of training samples
+Nv0 = 1000  # Number of validation samples
 
 learning_rate = 0.0001  # Learning rate for the VAE training
-train_patience = 500  # Patience for stopping during VAE training
+train_patience = 100  # Patience for stopping during VAE training
 
 z_dim = 10 # Dimension of the latent space for the VAE
-Ns = 5000 # Number of samples at each TMCMC step
+Ns = 500 # Number of samples at each TMCMC step
 batch_size = 128 # Batch size for VAE training
 nstep = 128 # Number of frequency steps in frequency response function
 kmin = 10 # cutoff frequency step for the frequency response function
-
 
 
 trained_model = True  # True if you want to use the trained model, False if you want to train a new one
@@ -39,7 +33,7 @@ print(device)
 ### Define true parameters and load observation
 true_theta = np.array([3, 3 + np.log10(5), np.log10(2)]) # Ground truth parameters for the portal frame model
 y_obs = np.load('observation/response_obs.npy')
-print(y_obs.shape)
+print(f'y_obs shape: {y_obs.shape}, true_theta: {true_theta}')
 
 ### Priors based on the case
 prior1 = uniform(1, 4)
@@ -87,7 +81,7 @@ label_val = prior_rnd(Nv0)
 Y0_val = sim(label_val)
 Dataset_val = [Y0_val, label_val]
 
-scatter_plot(samples['pop'][j - 1], labels, labels, true_theta)
+scatter_plot(samples['pop'][j - 1], true_theta,root, j)
 Ncall = N0 + Nv0
 
 Ndim = samples['pop'][j - 1].shape[1]  # number of dimensions
@@ -108,7 +102,7 @@ z_D, z = initialize_vae(y_obs, net.enc, device, Dataset_val)
 #### Sequential importance sampling
 while p_j[j - 1] < 1:
     repeat = True
-    print(f'TMCMC iteration: j = {j}')
+    print(f'TMCMC iteration: j = {j}, ', end='')
     # Y_sample = sim(samples['pop'][j - 1])
     logL_j[j - 1] = Lfun_vae(samples['pop'][j - 1], net.enc, sim, device, z_D, z)
     Ncall += Ns
@@ -125,13 +119,13 @@ while p_j[j - 1] < 1:
                          beta2)
     # Generate conditional samples using MH algorithm
     samples_j, logL_jp = MHalgorithm_vae(w_j, Ns, samples['pop'][j - 1], logL_j[j - 1], S_j, net.enc, sim, device,
-                                         z_D, z, p_j[j], prior_pdf, n_burn=1)
+                                         z_D, z, p_j[j], prior_pdf, n_burn=0)
     Ncall += Ns
 
     samples['pop'][j] = samples_j
     logL_j[j] = logL_jp
 
-    scatter_plot(samples_j, np.array([]), np.array([]), true_theta)
+    scatter_plot(samples_j, true_theta,root, j)
 
     j += 1
 
